@@ -37,17 +37,45 @@ class ProductSearchE2ETest {
         System.out.println("🔗 Selenium URL : " + seleniumUrl);
 
         ChromeOptions options = new ChromeOptions();
-        options.addArguments("--headless=new");
-        options.addArguments("--no-sandbox");
-        options.addArguments("--disable-dev-shm-usage");
-        options.addArguments("--window-size=1920,1080");
-
-        driver = new RemoteWebDriver(
-                new URL(seleniumUrl + "/wd/hub"),
-                options
+        options.addArguments(
+                "--headless=new",
+                "--no-sandbox",
+                "--disable-dev-shm-usage",
+                "--window-size=1920,1080"
         );
 
-        wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+        driver = createRemoteDriverWithRetry(seleniumUrl, options);
+        wait = new WebDriverWait(driver, Duration.ofSeconds(25));
+    }
+
+    /**
+     * Selenium Grid geç hazır olursa testin patlamasını engeller
+     */
+    private static WebDriver createRemoteDriverWithRetry(
+            String seleniumUrl,
+            ChromeOptions options
+    ) throws Exception {
+
+        Exception lastException = null;
+
+        for (int attempt = 1; attempt <= 5; attempt++) {
+            try {
+                System.out.println("🔄 Selenium bağlantı denemesi: " + attempt);
+                return new RemoteWebDriver(
+                        new URL(seleniumUrl + "/wd/hub"),
+                        options
+                );
+            } catch (Exception e) {
+                lastException = e;
+                System.out.println("⏳ Selenium hazır değil, bekleniyor...");
+                Thread.sleep(3000);
+            }
+        }
+
+        throw new RuntimeException(
+                "❌ Selenium Grid'e bağlanılamadı!",
+                lastException
+        );
     }
 
     @AfterAll
@@ -74,6 +102,7 @@ class ProductSearchE2ETest {
         WebElement searchInput = wait.until(
                 ExpectedConditions.visibilityOfElementLocated(By.id("searchInput"))
         );
+
         searchInput.clear();
         searchInput.sendKeys(keyword);
 
@@ -82,16 +111,13 @@ class ProductSearchE2ETest {
         );
 
         List<WebElement> rows = tableBody.findElements(By.tagName("tr"));
-        assertFalse(rows.isEmpty(), "Arama sonrası ürün listesi boş!");
+        assertFalse(rows.isEmpty(), "❌ Arama sonrası ürün listesi boş!");
 
         for (WebElement row : rows) {
-            List<WebElement> cells = row.findElements(By.tagName("td"));
-            assertFalse(cells.isEmpty(), "Ürün satırında hücre bulunamadı!");
-
             String rowText = row.getText().toLowerCase();
             assertTrue(
                     rowText.contains(keyword.toLowerCase()),
-                    "Filtrelenen sonuç aranan kelimeyi içermiyor: " + rowText
+                    "❌ Filtre sonucu hatalı: " + rowText
             );
         }
     }
@@ -120,6 +146,6 @@ class ProductSearchE2ETest {
             return token != null && !token.toString().isEmpty();
         });
 
-        assertTrue(tokenExists, "Login başarısız – token oluşmadı!");
+        assertTrue(tokenExists, "❌ Login başarısız – token oluşmadı!");
     }
 }

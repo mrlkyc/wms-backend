@@ -100,8 +100,12 @@ pipeline {
 
         stage('Reset Selenium') {
             steps {
-                bat 'docker restart selenium-chrome'
-                sleep(time: 15, unit: 'SECONDS')
+                bat '''
+                docker restart selenium-chrome
+                echo Selenium ayakta bekleniyor...
+                timeout /t 20
+                curl http://selenium-chrome:4444/status || exit 1
+                '''
             }
         }
 
