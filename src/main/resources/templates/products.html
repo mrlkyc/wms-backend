@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>DYS - Ürün Yönetimi</title>
+
+    <style>
+        :root {
+            --bg-main: #f3f4f6;
+            --bg-card: #ffffff;
+            --border: #e5e7eb;
+            --primary: #3b82f6;
+            --danger: #ef4444;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: "Segoe UI", system-ui, sans-serif;
+            background: var(--bg-main);
+            margin: 0;
+            padding: 24px;
+            color: var(--text-main);
+        }
+
+        h1 {
+            margin-bottom: 16px;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        input[type="text"] {
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            width: 260px;
+        }
+
+        button {
+            padding: 8px 14px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-card);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.05);
+        }
+
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+            text-align: left;
+        }
+
+        th {
+            background: #f9fafb;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: #f9fafb;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+        }
+
+        .modal-content {
+            background: white;
+            width: 500px;
+            max-width: 95%;
+            margin: 5% auto;
+            padding: 20px;
+            border-radius: 12px;
+        }
+
+        .modal-content h2 {
+            margin-bottom: 12px;
+        }
+
+        .modal-content input,
+        .modal-content textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .close {
+            float: right;
+            font-size: 22px;
+            cursor: pointer;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>Ürün Yönetimi</h1>
+
+<div class="top-bar">
+    <div class="actions">
+        <button id="createProductBtn" class="btn-primary">Yeni Ürün Ekle</button>
+        <input type="text" id="searchInput" placeholder="Ürün ara..." />
+    </div>
+    <button id="logout" class="btn-danger">Çıkış Yap</button>
+</div>
+
+<table>
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>SKU</th>
+        <th>Ürün Adı</th>
+        <th>Kategori</th>
+        <th>Birim Fiyat</th>
+        <th>Minimum Stok</th>
+        <th>İşlemler</th>
+    </tr>
+    </thead>
+    <tbody id="productsBody"></tbody>
+</table>
+
+<!-- MODAL -->
+<div id="productModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2 id="modalTitle">Yeni Ürün</h2>
+
+        <form id="productForm">
+            <input type="hidden" id="productId" />
+
+            <input type="text" id="sku" placeholder="SKU" required />
+            <input type="text" id="barcode" placeholder="Barkod" />
+            <input type="text" id="name" placeholder="Ürün Adı" required />
+            <textarea id="description" placeholder="Açıklama"></textarea>
+            <input type="text" id="unit" placeholder="Birim (PCS, KG vb.)" required />
+            <input type="number" id="unitPrice" placeholder="Birim Fiyat" step="0.01" required />
+            <input type="number" id="minStockLevel" placeholder="Minimum Stok Seviyesi" required />
+            <input type="text" id="category" placeholder="Kategori" />
+
+            <button type="submit" class="btn-primary">Kaydet</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    // === JS KODUN AYNEN KORUNDU ===
+    const token = localStorage.getItem('token');
+    if (!token) window.location.href = '/login';
+
+    const headers = {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+    };
+
+    document.getElementById('logout').onclick = () => {
+        localStorage.clear();
+        window.location.href = '/login';
+    };
+
+    async function loadProducts(search = '') {
+        const url = search ? `/api/products?search=${search}` : '/api/products';
+        const res = await fetch(url, { headers });
+        const data = await res.json();
+        const tbody = document.getElementById('productsBody');
+        tbody.innerHTML = '';
+
+        const products = data.data.content || data.data;
+        products.forEach(p => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${p.id}</td>
+                    <td>${p.sku}</td>
+                    <td>${p.name}</td>
+                    <td>${p.category || '-'}</td>
+                    <td>${p.unitPrice} ₺</td>
+                    <td>${p.minStockLevel}</td>
+                    <td>
+                        <button class="btn-primary" onclick="editProduct(${p.id})">Düzenle</button>
+                        <button class="btn-danger" onclick="deleteProduct(${p.id})">Sil</button>
+                    </td>
+                </tr>`;
+        });
+    }
+
+    document.getElementById('searchInput').oninput = e => loadProducts(e.target.value);
+
+    const modal = document.getElementById('productModal');
+    document.querySelector('.close').onclick = () => modal.style.display = 'none';
+
+    document.getElementById('createProductBtn').onclick = () => {
+        document.getElementById('productForm').reset();
+        document.getElementById('productId').value = '';
+        document.getElementById('modalTitle').innerText = 'Yeni Ürün';
+        modal.style.display = 'block';
+    };
+
+    document.getElementById('productForm').onsubmit = async e => {
+        e.preventDefault();
+        const id = productId.value;
+        const payload = {
+            sku: sku.value,
+            barcode: barcode.value,
+            name: name.value,
+            description: description.value,
+            unit: unit.value,
+            unitPrice: parseFloat(unitPrice.value),
+            minStockLevel: parseInt(minStockLevel.value),
+            category: category.value
+        };
+
+        await fetch(id ? `/api/products/${id}` : '/api/products', {
+            method: id ? 'PUT' : 'POST',
+            headers,
+            body: JSON.stringify(payload)
+        });
+
+        modal.style.display = 'none';
+        loadProducts();
+    };
+
+    async function editProduct(id) {
+        const res = await fetch(`/api/products/${id}`, { headers });
+        const p = (await res.json()).data;
+
+        productId.value = p.id;
+        sku.value = p.sku;
+        barcode.value = p.barcode || '';
+        name.value = p.name;
+        description.value = p.description || '';
+        unit.value = p.unit;
+        unitPrice.value = p.unitPrice;
+        minStockLevel.value = p.minStockLevel;
+        category.value = p.category || '';
+
+        modal.style.display = 'block';
+        modalTitle.innerText = 'Ürün Düzenle';
+    }
+
+    async function deleteProduct(id) {
+        if (!confirm('Bu ürünü silmek istiyor musunuz?')) return;
+        await fetch(`/api/products/${id}`, { method: 'DELETE', headers });
+        loadProducts();
+    }
+
+    loadProducts();
+</script>
+
+</body>
+</html>
