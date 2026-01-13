@@ -13,14 +13,14 @@ pipeline {
     }
 
     environment {
-        BACKEND_URL = "http://localhost:8089"
+        BACKEND_URL  = "http://localhost:8089"
         SELENIUM_URL = "http://localhost:4444"
     }
 
     stages {
 
         // =================================================
-        // 1. KODLARI ÇEK
+        // 1. CHECKOUT
         // =================================================
         stage('Checkout') {
             steps {
@@ -49,23 +49,39 @@ pipeline {
         }
 
         // =================================================
-        // 3. UNIT + INTEGRATION TESTLER
+        // 3. UNIT TESTS
         // =================================================
-        stage('Unit & Integration Tests') {
+        stage('Unit Tests') {
             steps {
-                echo '🧪 Unit + Integration testler çalıştırılıyor'
-                bat 'mvn clean test'
+                echo '🧪 Unit testler çalıştırılıyor'
+                bat 'mvn test -Dtest=*ServiceTest'
             }
             post {
                 always {
                     junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
-                    echo '📊 Test raporları toplandı'
+                    echo '📊 Unit test raporları toplandı'
                 }
             }
         }
 
         // =================================================
-        // 4. SISTEMI DOCKER ILE AYAĞA KALDIR
+        // 4. INTEGRATION TESTS
+        // =================================================
+        stage('Integration Tests') {
+            steps {
+                echo '🔗 Integration testler çalıştırılıyor'
+                bat 'mvn test -Dtest=*IntegrationTest'
+            }
+            post {
+                always {
+                    junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
+                    echo '📊 Integration test raporları toplandı'
+                }
+            }
+        }
+
+        // =================================================
+        // 5. SISTEMI DOCKER ILE AYAĞA KALDIR
         // =================================================
         stage('Start System (Docker)') {
             steps {
@@ -78,11 +94,11 @@ pipeline {
         }
 
         // =================================================
-        // 5. SERVISLER HAZIR MI?
+        // 6. SERVISLER HAZIR MI?
         // =================================================
         stage('Wait for Services') {
             steps {
-                echo '⏳ Backend hazır mı kontrol ediliyor (PowerShell)'
+                echo '⏳ Backend hazır mı kontrol ediliyor'
 
                 powershell '''
                 $maxRetry = 30
@@ -98,7 +114,6 @@ pipeline {
                     } catch {
                         Write-Host "⏳ Backend bekleniyor..."
                     }
-
                     Start-Sleep -Seconds 5
                     $retry++
                 }
@@ -107,7 +122,7 @@ pipeline {
                 exit 1
                 '''
 
-                echo '⏳ Selenium hazır mı kontrol ediliyor (PowerShell)'
+                echo '⏳ Selenium hazır mı kontrol ediliyor'
 
                 powershell '''
                 $maxRetry = 20
@@ -123,7 +138,6 @@ pipeline {
                     } catch {
                         Write-Host "⏳ Selenium bekleniyor..."
                     }
-
                     Start-Sleep -Seconds 3
                     $retry++
                 }
@@ -134,9 +148,8 @@ pipeline {
             }
         }
 
-
         // =================================================
-        // 6. E2E (SELENIUM) TESTLER
+        // 7. E2E TESTS (SELENIUM)
         // =================================================
         stage('E2E Tests (Selenium)') {
             steps {
