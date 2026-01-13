@@ -82,39 +82,58 @@ pipeline {
         // =================================================
         stage('Wait for Services') {
             steps {
-                echo '⏳ Backend hazır mı kontrol ediliyor'
-                bat '''
-                FOR /L %%i IN (1,1,30) DO (
-                    curl -f %BACKEND_URL%/actuator/health > nul 2>&1
-                    IF %ERRORLEVEL% EQU 0 (
-                        echo Backend hazir
-                        GOTO backend_ok
-                    )
-                    echo Backend bekleniyor...
-                    timeout /t 5 > nul
-                )
-                echo Backend zaman asimina ugradi
-                EXIT /B 1
-                :backend_ok
+                echo '⏳ Backend hazır mı kontrol ediliyor (PowerShell)'
+
+                powershell '''
+                $maxRetry = 30
+                $retry = 0
+
+                while ($retry -lt $maxRetry) {
+                    try {
+                        $response = Invoke-WebRequest -Uri "$env:BACKEND_URL/actuator/health" -UseBasicParsing -TimeoutSec 2
+                        if ($response.StatusCode -eq 200) {
+                            Write-Host "✅ Backend hazır"
+                            exit 0
+                        }
+                    } catch {
+                        Write-Host "⏳ Backend bekleniyor..."
+                    }
+
+                    Start-Sleep -Seconds 5
+                    $retry++
+                }
+
+                Write-Error "❌ Backend zaman aşımına uğradı"
+                exit 1
                 '''
 
-                echo '⏳ Selenium hazır mı kontrol ediliyor'
-                bat '''
-                FOR /L %%i IN (1,1,20) DO (
-                    curl -f %SELENIUM_URL%/wd/hub/status > nul 2>&1
-                    IF %ERRORLEVEL% EQU 0 (
-                        echo Selenium hazir
-                        GOTO selenium_ok
-                    )
-                    echo Selenium bekleniyor...
-                    timeout /t 3 > nul
-                )
-                echo Selenium zaman asimina ugradi
-                EXIT /B 1
-                :selenium_ok
+                echo '⏳ Selenium hazır mı kontrol ediliyor (PowerShell)'
+
+                powershell '''
+                $maxRetry = 20
+                $retry = 0
+
+                while ($retry -lt $maxRetry) {
+                    try {
+                        $response = Invoke-WebRequest -Uri "$env:SELENIUM_URL/wd/hub/status" -UseBasicParsing -TimeoutSec 2
+                        if ($response.StatusCode -eq 200) {
+                            Write-Host "✅ Selenium hazır"
+                            exit 0
+                        }
+                    } catch {
+                        Write-Host "⏳ Selenium bekleniyor..."
+                    }
+
+                    Start-Sleep -Seconds 3
+                    $retry++
+                }
+
+                Write-Error "❌ Selenium zaman aşımına uğradı"
+                exit 1
                 '''
             }
         }
+
 
         // =================================================
         // 6. E2E (SELENIUM) TESTLER
