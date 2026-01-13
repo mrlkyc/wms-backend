@@ -161,17 +161,58 @@ stage('Force Clean Docker') {
         // =================================================
         // 7. E2E TESTS (SELENIUM)
         // =================================================
-        stage('E2E Tests (Selenium)') {
-            steps {
-                echo '🌐 Selenium E2E testleri çalıştırılıyor'
-                bat 'mvn test -Pe2e'
-            }
-            post {
-                always {
-                    junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
-                    echo '📊 E2E test raporları toplandı'
-                }
-            }
+      // =================================================
+      // 6. E2E (SELENIUM) TESTLER – AYRI AYRI
+      // =================================================
+
+      stage('E2E - Login') {
+          steps {
+              echo '🌐 LoginE2ETest çalıştırılıyor'
+              bat 'mvn test -Pe2e -Dtest=LoginE2ETest'
+          }
+          post {
+              always {
+                  junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
+              }
+          }
+      }
+
+      stage('E2E - Logout') {
+          steps {
+              echo '🌐 LogoutE2ETest çalıştırılıyor'
+              bat 'mvn test -Pe2e -Dtest=LogoutE2ETest'
+          }
+          post {
+              always {
+                  junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
+              }
+          }
+      }
+
+      stage('E2E - Product CRUD') {
+          steps {
+              echo '🌐 ProductE2ETest çalıştırılıyor'
+              bat 'mvn test -Pe2e -Dtest=ProductE2ETest'
+          }
+          post {
+              always {
+                  junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
+              }
+          }
+      }
+
+      stage('E2E - Product Search') {
+          steps {
+              echo '🌐 ProductSearchE2ETest çalıştırılıyor'
+              bat 'mvn test -Pe2e -Dtest=ProductSearchE2ETest'
+          }
+          post {
+              always {
+                  junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
+              }
+          }
+      }
+
         }
     }
 
