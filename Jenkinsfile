@@ -85,30 +85,33 @@ pipeline {
             }
         }
 
-        stage('Wait for Services') {
-            steps {
-                echo '⏳ Selenium hazır mı kontrol ediliyor'
+       stage('Wait for Selenium') {
+           steps {
+               echo '⏳ Selenium hazır mı kontrol ediliyor'
+               bat '''
+               powershell -Command "
+               $maxRetry = 20
+               $retry = 0
 
-                $maxRetry = 20
-                $retry = 0
+               while ($retry -lt $maxRetry) {
+                   try {
+                       Invoke-WebRequest http://localhost:4444/status -TimeoutSec 2 | Out-Null
+                       Write-Host '✅ Selenium hazır'
+                       exit 0
+                   } catch {
+                       Write-Host '⏳ Selenium bekleniyor...'
+                   }
+                   Start-Sleep -Seconds 3
+                   $retry++
+               }
 
-                while ($retry -lt $maxRetry) {
-                    try {
-                        Invoke-WebRequest "http://localhost:4444/status" -TimeoutSec 2 | Out-Null
-                        Write-Host "✅ Selenium hazır"
-                        exit 0
-                    } catch {
-                        Write-Host "⏳ Selenium bekleniyor..."
-                    }
-                    Start-Sleep -Seconds 3
-                    $retry++
-                }
+               Write-Error '❌ Selenium hazır olmadı'
+               exit 1
+               "
+               '''
+           }
+       }
 
-                Write-Error "❌ Selenium hazır olmadı"
-                exit 1
-
-            }
-        }
 
         // ===================== E2E TESTLER =====================
 
