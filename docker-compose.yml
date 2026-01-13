@@ -1,6 +1,7 @@
-version: '3.8'
+version: "3.8"
 
 services:
+
   wms-postgres:
     image: postgres:15-alpine
     container_name: wms-postgres
@@ -21,24 +22,24 @@ services:
     networks:
       - wms-network
 
-  backend:
+  wms-backend:
     build:
       context: .
-      dockerfile: ./Dockerfile
+      dockerfile: Dockerfile
     container_name: wms-backend
     environment:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_URL: jdbc:postgresql://wms-postgres:5432/wmsdb
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: 081102
-      SERVER_PORT: 8080   # 🔴 KRİTİK SATIR
+      SERVER_PORT: 8080
     ports:
-      - "8089:8080"       # 🔴 HOST:CONTAINER
+      - "8089:8080"
     depends_on:
       wms-postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
       interval: 15s
       timeout: 10s
       retries: 5
@@ -50,8 +51,8 @@ services:
     image: selenium/standalone-chrome:latest
     container_name: selenium-chrome
     ports:
-      - "4444:4444"
-      - "7900:7900"
+      - "4444:4444"   # 🔥 JENKINS & E2E İÇİN KRİTİK
+      - "7900:7900"   # (isteğe bağlı VNC)
     shm_size: 2gb
     environment:
       SE_NODE_MAX_SESSIONS: 5
