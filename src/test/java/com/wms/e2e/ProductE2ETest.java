@@ -30,15 +30,15 @@ class ProductE2ETest {
     @BeforeAll
     static void setUpDriver() throws Exception {
 
-        // 🔴 localhost YOK – ENV varsa onu al
+        // ✅ Jenkins HOST için doğru adresler
         baseUrl = System.getenv().getOrDefault(
                 "BACKEND_URL",
-                "http://wms-backend:8089"
+                "http://localhost:8089"
         );
 
         seleniumUrl = System.getenv().getOrDefault(
                 "SELENIUM_URL",
-                "http://selenium-chrome:4444"
+                "http://localhost:4444"
         );
 
         System.out.println("🌐 App URL      : " + baseUrl);
@@ -50,13 +50,13 @@ class ProductE2ETest {
         options.addArguments("--disable-dev-shm-usage");
         options.addArguments("--window-size=1920,1080");
 
-        // ✅ Selenium 4 → /wd/hub KULLANMA
+        // ✅ Selenium 4 → /wd/hub YOK
         driver = new RemoteWebDriver(
                 new URL(seleniumUrl),
                 options
         );
 
-        wait = new WebDriverWait(driver, Duration.ofSeconds(25));
+        wait = new WebDriverWait(driver, Duration.ofSeconds(30));
     }
 
     @AfterAll
@@ -117,8 +117,10 @@ class ProductE2ETest {
                 ExpectedConditions.visibilityOfElementLocated(By.id("productsBody"))
         );
 
-        assertTrue(body.getText().contains("E2E-PRD-001"),
-                "Oluşturulan ürün tabloda görünmüyor!");
+        assertTrue(
+                body.getText().contains("E2E-PRD-001"),
+                "Oluşturulan ürün tabloda görünmüyor!"
+        );
     }
 
     @Test
@@ -129,6 +131,7 @@ class ProductE2ETest {
         WebElement searchInput = wait.until(
                 ExpectedConditions.visibilityOfElementLocated(By.id("searchInput"))
         );
+
         searchInput.clear();
         searchInput.sendKeys("E2E");
 
@@ -136,8 +139,10 @@ class ProductE2ETest {
                 ExpectedConditions.visibilityOfElementLocated(By.id("productsBody"))
         );
 
-        assertTrue(body.getText().toLowerCase().contains("e2e"),
-                "Arama sonucu beklenen ürünü içermiyor!");
+        assertTrue(
+                body.getText().toLowerCase().contains("e2e"),
+                "Arama sonucu beklenen ürünü içermiyor!"
+        );
     }
 
     // ================= HELPERS =================
