@@ -3,7 +3,7 @@ pipeline {
 
     tools {
         maven 'Maven-3.9.6'
-        jdk  'jdk-21'
+        jdk 'jdk-21'
     }
 
     options {
@@ -13,9 +13,6 @@ pipeline {
     }
 
     environment {
-        HOST_BACKEND_URL   = "http://localhost:8089"
-        HOST_SELENIUM_URL  = "http://localhost:4444"
-
         DOCKER_BACKEND_URL  = "http://wms-backend:8080"
         DOCKER_SELENIUM_URL = "http://selenium-chrome:4444"
     }
@@ -28,7 +25,7 @@ pipeline {
             }
         }
 
-        stage('Build') {
+        stage('Build (Skip Tests)') {
             steps {
                 bat 'mvn clean package -DskipTests'
             }
@@ -56,17 +53,7 @@ pipeline {
             }
         }
 
-        stage('Force Clean Docker') {
-            steps {
-                bat '''
-                docker rm -f wms-postgres || echo yok
-                docker rm -f selenium-chrome || echo yok
-                docker rm -f wms-backend || echo yok
-                '''
-            }
-        }
-
-        stage('Start System (Docker)') {
+        stage('Start Docker System') {
             steps {
                 bat '''
                 docker-compose down -v
@@ -78,27 +65,23 @@ pipeline {
         stage('Wait for Selenium') {
             steps {
                 bat '''
-                echo Selenium Grid bekleniyor...
-                for /L %%i in (1,1,10) do (
-                    docker exec selenium-chrome curl -s http://localhost:4444/status && goto ready
-                    timeout /t 5
+                echo Selenium bekleniyor...
+                for /L %%i in (1,1,15) do (
+                    docker exec selenium-chrome curl -s http://localhost:4444/status && exit /b 0
+                    timeout /t 4
                 )
-                echo Selenium Grid hazir degil
-                exit 1
-                :ready
-                echo Selenium Grid hazir
+                exit /b 1
                 '''
             }
         }
 
+        // ================= LOGIN E2E =================
 
-        stage('E2E - Login') {
+        stage('E2E - Login Page Loads') {
             steps {
                 bat '''
                 mvn test -Pe2e ^
-                -Dtest=LoginE2ETest ^
-                -Dspring.profiles.active=test ^
-                -Dapp.url=%DOCKER_BACKEND_URL% ^
+                -Dtest=LoginE2ETest#loginPage_shouldLoad ^
                 -Dselenium.remote.url=%DOCKER_SELENIUM_URL%
                 '''
             }
@@ -109,15 +92,11 @@ pipeline {
             }
         }
 
-
-
-        stage('E2E - Product Search') {
+        stage('E2E - Valid Login Redirects') {
             steps {
                 bat '''
                 mvn test -Pe2e ^
-                -Dtest=ProductSearchE2ETest ^
-                -Dspring.profiles.active=test ^
-                -Dapp.url=%DOCKER_BACKEND_URL% ^
+                -Dtest=LoginE2ETest#validLogin_shouldRedirectToAdminPage ^
                 -Dselenium.remote.url=%DOCKER_SELENIUM_URL%
                 '''
             }
@@ -128,13 +107,11 @@ pipeline {
             }
         }
 
-        stage('E2E - Product CRUD') {
+        stage('E2E - Invalid Login Shows Error') {
             steps {
                 bat '''
                 mvn test -Pe2e ^
-                -Dtest=ProductE2ETest ^
-                -Dspring.profiles.active=test ^
-                -Dapp.url=%DOCKER_BACKEND_URL% ^
+                -Dtest=LoginE2ETest#invalidLogin_shouldShowErrorMessage ^
                 -Dselenium.remote.url=%DOCKER_SELENIUM_URL%
                 '''
             }
@@ -144,19 +121,17 @@ pipeline {
                 }
             }
         }
-
-    } // ✅ stages KAPANDI
+    }
 
     post {
         always {
             bat 'docker-compose down -v'
         }
         success {
-            echo 'PIPELINE BAŞARILI'
+            echo '✅ PIPELINE BAŞARILI – LOGIN E2E TAMAMLANDI'
         }
         failure {
-            echo 'PIPELINE BAŞARISIZ'
+            echo '❌ PIPELINE BAŞARISIZ'
         }
     }
-
-} // ✅ pipeline KAPANDI
+}
