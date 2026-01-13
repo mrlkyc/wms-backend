@@ -158,63 +158,60 @@ stage('Force Clean Docker') {
             }
         }
 
-        // =================================================
-        // 7. E2E TESTS (SELENIUM)
-        // =================================================
-      // =================================================
-      // 6. E2E (SELENIUM) TESTLER – AYRI AYRI
-      // =================================================
+   // E2E TESTLER – AYRI AYRI
+           // =======================
 
-      stage('E2E - Login') {
-          steps {
-              echo '🌐 LoginE2ETest çalıştırılıyor'
-              bat 'mvn test -Pe2e -Dtest=LoginE2ETest'
-          }
-          post {
-              always {
-                  junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
-              }
-          }
-      }
+           stage('E2E - Login') {
+               steps {
+                   bat 'mvn test -Pe2e -Dtest=LoginE2ETest'
+               }
+               post {
+                   always {
+                       junit 'target/surefire-reports/*.xml'
+                   }
+               }
+           }
 
-      stage('E2E - Logout') {
-          steps {
-              echo '🌐 LogoutE2ETest çalıştırılıyor'
-              bat 'mvn test -Pe2e -Dtest=LogoutE2ETest'
-          }
-          post {
-              always {
-                  junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
-              }
-          }
-      }
+           stage('E2E - Logout') {
+               steps {
+                   bat 'mvn test -Pe2e -Dtest=LogoutE2ETest'
+               }
+               post {
+                   always {
+                       junit 'target/surefire-reports/*.xml'
+                   }
+               }
+           }
 
-      stage('E2E - Product CRUD') {
-          steps {
-              echo '🌐 ProductE2ETest çalıştırılıyor'
-              bat 'mvn test -Pe2e -Dtest=ProductE2ETest'
-          }
-          post {
-              always {
-                  junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
-              }
-          }
-      }
+           stage('E2E - Product CRUD') {
+               steps {
+                   bat 'mvn test -Pe2e -Dtest=ProductE2ETest'
+               }
+               post {
+                   always {
+                       junit 'target/surefire-reports/*.xml'
+                   }
+               }
+           }
 
-      stage('E2E - Product Search') {
-          steps {
-              echo '🌐 ProductSearchE2ETest çalıştırılıyor'
-              bat 'mvn test -Pe2e -Dtest=ProductSearchE2ETest'
-          }
-          post {
-              always {
-                  junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
-              }
-          }
-      }
+           stage('E2E - Product Search') {
+               steps {
+                   bat 'mvn test -Pe2e -Dtest=ProductSearchE2ETest'
+               }
+               post {
+                   always {
+                       junit 'target/surefire-reports/*.xml'
+                   }
+               }
+           }
+       }
 
-        }
-    }
+       post {
+           always {
+               bat 'docker-compose down -v'
+           }
+       }
+   }
 
     post {
         always {
