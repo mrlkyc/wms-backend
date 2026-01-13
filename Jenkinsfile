@@ -122,8 +122,8 @@ pipeline {
                 mvn test -Pe2e ^
                 -Dtest=ProductE2ETest ^
                 -Dspring.profiles.active=test ^
-                -Dapp.url=%BACKEND_URL% ^
-                -Dselenium.remote.url=%SELENIUM_URL%
+                -Dapp.url=http://wms-backend:8080 ^
+                -Dselenium.remote.url=http://selenium-chrome:4444
                 '''
             }
             post {
@@ -132,6 +132,7 @@ pipeline {
                 }
             }
         }
+
 
         stage('E2E - Product Search') {
             when {

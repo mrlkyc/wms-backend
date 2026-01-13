@@ -33,7 +33,8 @@ class ProductE2ETest {
         // ✅ Jenkins HOST için doğru adresler
         baseUrl = System.getenv().getOrDefault(
                 "BACKEND_URL",
-                "http://localhost:8089"
+                "http://wms-backend:8080"
+
         );
 
         seleniumUrl = System.getenv().getOrDefault(
