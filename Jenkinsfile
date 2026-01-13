@@ -23,11 +23,19 @@ pipeline {
             steps {
                 checkout scm
             }
+            post {
+                success { echo '✅ Checkout başarılı' }
+                failure { echo '❌ Checkout başarısız' }
+            }
         }
 
         stage('Build (Skip Tests)') {
             steps {
                 bat 'mvn clean package -DskipTests'
+            }
+            post {
+                success { echo '✅ Build başarılı' }
+                failure { echo '❌ Build başarısız' }
             }
         }
 
@@ -39,6 +47,8 @@ pipeline {
                 always {
                     junit 'target/surefire-reports/*.xml'
                 }
+                success { echo '✅ Unit testler geçti' }
+                failure { echo '❌ Unit test hatası' }
             }
         }
 
@@ -50,6 +60,8 @@ pipeline {
                 always {
                     junit 'target/surefire-reports/*.xml'
                 }
+                success { echo '✅ Integration testler geçti' }
+                failure { echo '❌ Integration test hatası' }
             }
         }
 
@@ -59,6 +71,10 @@ pipeline {
                 docker-compose down -v
                 docker-compose up -d
                 '''
+            }
+            post {
+                success { echo '🐳 Docker sistemi ayakta' }
+                failure { echo '❌ Docker başlatılamadı' }
             }
         }
 
@@ -72,6 +88,10 @@ pipeline {
                 )
                 exit /b 1
                 '''
+            }
+            post {
+                success { echo '🟢 Selenium hazır' }
+                failure { echo '🔴 Selenium hazır değil' }
             }
         }
 
@@ -89,6 +109,8 @@ pipeline {
                 always {
                     junit 'target/surefire-reports/*.xml'
                 }
+                success { echo '✅ Login page load testi geçti' }
+                failure { echo '❌ Login page load testi başarısız' }
             }
         }
 
@@ -104,6 +126,8 @@ pipeline {
                 always {
                     junit 'target/surefire-reports/*.xml'
                 }
+                success { echo '✅ Valid login testi geçti' }
+                failure { echo '❌ Valid login testi başarısız' }
             }
         }
 
@@ -119,19 +143,38 @@ pipeline {
                 always {
                     junit 'target/surefire-reports/*.xml'
                 }
+                success { echo '✅ Invalid login testi geçti' }
+                failure { echo '❌ Invalid login testi başarısız' }
             }
         }
     }
 
     post {
         always {
+            echo '🧹 Docker ortamı kapatılıyor'
             bat 'docker-compose down -v'
         }
+
         success {
-            echo '✅ PIPELINE BAŞARILI – LOGIN E2E TAMAMLANDI'
+            echo '''
+=============================
+✅ PIPELINE BAŞARILI
+✔ Build
+✔ Unit Tests
+✔ Integration Tests
+✔ Login E2E (3/3)
+=============================
+'''
         }
+
         failure {
-            echo '❌ PIPELINE BAŞARISIZ'
+            echo '''
+=============================
+❌ PIPELINE BAŞARISIZ
+⛔ Bir veya daha fazla stage hata aldı
+📄 Test raporlarını inceleyin
+=============================
+'''
         }
     }
 }
