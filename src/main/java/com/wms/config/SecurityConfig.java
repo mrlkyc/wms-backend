@@ -35,6 +35,9 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CustomAuthenticationSuccessHandler customAuthenticationSuccessHandler;
 
+    // =================================================
+    // SECURITY FILTER CHAIN
+    // =================================================
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
@@ -43,10 +46,15 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
 
+                // ================= SESSION =================
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+
                 // ================= AUTHORIZATION =================
                 .authorizeHttpRequests(auth -> auth
 
-                        // 🔓 AUTH & SWAGGER & ACTUATOR
+                        // 🔓 AUTH / SWAGGER / ACTUATOR
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/swagger-ui/**",
@@ -55,12 +63,8 @@ public class SecurityConfig {
                                 "/actuator/health"
                         ).permitAll()
 
-                        // 🔓 THYMELEAF SAYFALARI & STATICS
+                        // 🔓 THYMELEAF & STATIC
                         .requestMatchers(
-                                        "/v3/api-docs",
-                                        "/v3/api-docs/**",
-                                        "/swagger-ui.html",
-                                        "/swagger-ui/**",
                                 "/login",
                                 "/register",
                                 "/products",
@@ -74,9 +78,7 @@ public class SecurityConfig {
                                 "/js/**"
                         ).permitAll()
 
-                        // ================= REST API ROLE KURALLARI =================
-
-                        // PRODUCTS
+                        // ================= PRODUCTS =================
                         .requestMatchers(HttpMethod.GET, "/api/products/**")
                         .hasAnyRole("ADMIN", "MANAGER", "WORKER")
                         .requestMatchers(HttpMethod.POST, "/api/products/**")
@@ -86,7 +88,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/products/**")
                         .hasAnyRole("ADMIN", "MANAGER")
 
-                        // WAREHOUSES
+                        // ================= WAREHOUSES =================
                         .requestMatchers(HttpMethod.GET, "/api/warehouses/**")
                         .hasAnyRole("ADMIN", "MANAGER", "WORKER")
                         .requestMatchers(HttpMethod.POST, "/api/warehouses/**")
@@ -96,7 +98,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/warehouses/**")
                         .hasAnyRole("ADMIN", "MANAGER")
 
-                        // LOCATIONS
+                        // ================= LOCATIONS =================
                         .requestMatchers(HttpMethod.GET, "/api/locations/**")
                         .hasAnyRole("ADMIN", "MANAGER", "WORKER")
                         .requestMatchers(HttpMethod.POST, "/api/locations/**")
@@ -106,7 +108,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/locations/**")
                         .hasAnyRole("ADMIN", "MANAGER")
 
-                        // INVENTORY
+                        // ================= INVENTORY =================
                         .requestMatchers(HttpMethod.GET, "/api/inventory/**")
                         .hasAnyRole("ADMIN", "MANAGER", "WORKER")
                         .requestMatchers(HttpMethod.POST, "/api/inventory/**")
@@ -116,19 +118,19 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/inventory/**")
                         .hasAnyRole("ADMIN", "MANAGER")
 
-                        // STOCK
+                        // ================= STOCK =================
                         .requestMatchers("/api/stock/**")
                         .hasAnyRole("ADMIN", "MANAGER", "WORKER")
 
-                        // PURCHASE ORDERS
+                        // ================= PURCHASE ORDERS =================
                         .requestMatchers("/api/purchase-orders/**")
                         .hasAnyRole("ADMIN", "MANAGER")
 
-                        // ORDERS
+                        // ================= ORDERS =================
                         .requestMatchers("/api/orders/**")
                         .hasAnyRole("ADMIN", "MANAGER", "WORKER")
 
-                        // SUPPLIERS
+                        // ================= SUPPLIERS =================
                         .requestMatchers(HttpMethod.GET, "/api/suppliers/**")
                         .hasAnyRole("ADMIN", "MANAGER", "WORKER")
                         .requestMatchers(HttpMethod.POST, "/api/suppliers/**")
@@ -138,21 +140,16 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/suppliers/**")
                         .hasAnyRole("ADMIN", "MANAGER")
 
-                        // REPORTS
+                        // ================= REPORTS =================
                         .requestMatchers("/api/reports/**")
                         .hasAnyRole("ADMIN", "MANAGER")
 
-                        // ADMIN API
+                        // ================= ADMIN =================
                         .requestMatchers("/api/admin/**")
                         .hasRole("ADMIN")
 
-                        // 🔒 DİĞER HER ŞEY
+                        // 🔒 OTHER
                         .anyRequest().authenticated()
-                )
-
-                // ================= SESSION =================
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
 
                 // ================= AUTH PROVIDER =================
@@ -161,7 +158,7 @@ public class SecurityConfig {
                 // ================= JWT FILTER =================
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
 
-                // ================= FORM LOGIN (THYMELEAF) =================
+                // ================= FORM LOGIN =================
                 .formLogin(form -> form
                         .loginPage("/login")
                         .successHandler(customAuthenticationSuccessHandler)
@@ -171,8 +168,9 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // ================= AUTH BEANS =================
-
+    // =================================================
+    // AUTHENTICATION BEANS
+    // =================================================
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
@@ -182,8 +180,10 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration configuration
+    ) throws Exception {
+        return configuration.getAuthenticationManager();
     }
 
     @Bean
@@ -191,8 +191,9 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    // ================= CORS =================
-
+    // =================================================
+    // CORS
+    // =================================================
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
@@ -205,5 +206,4 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", config);
         return source;
     }
-
 }
