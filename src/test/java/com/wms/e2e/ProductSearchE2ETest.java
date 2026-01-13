@@ -29,7 +29,7 @@ class ProductSearchE2ETest {
     // ================= SETUP =================
 
     @BeforeAll
-    static void setUpDriver() throws Exception {
+    static void setup() throws Exception {
         baseUrl = System.getProperty("app.url", "http://localhost:8089");
         seleniumUrl = System.getProperty("selenium.remote.url", "http://localhost:4444");
 
@@ -37,45 +37,17 @@ class ProductSearchE2ETest {
         System.out.println("🔗 Selenium URL : " + seleniumUrl);
 
         ChromeOptions options = new ChromeOptions();
-        options.addArguments(
-                "--headless=new",
-                "--no-sandbox",
-                "--disable-dev-shm-usage",
-                "--window-size=1920,1080"
+        options.addArguments("--headless=new");
+        options.addArguments("--no-sandbox");
+        options.addArguments("--disable-dev-shm-usage");
+        options.addArguments("--window-size=1920,1080");
+
+        driver = new RemoteWebDriver(
+                new URL(seleniumUrl),
+                options
         );
 
-        driver = createRemoteDriverWithRetry(seleniumUrl, options);
-        wait = new WebDriverWait(driver, Duration.ofSeconds(25));
-    }
-
-    /**
-     * Selenium Grid geç hazır olursa testin patlamasını engeller
-     */
-    private static WebDriver createRemoteDriverWithRetry(
-            String seleniumUrl,
-            ChromeOptions options
-    ) throws Exception {
-
-        Exception lastException = null;
-
-        for (int attempt = 1; attempt <= 5; attempt++) {
-            try {
-                System.out.println("🔄 Selenium bağlantı denemesi: " + attempt);
-                return new RemoteWebDriver(
-                        new URL(seleniumUrl + "/wd/hub"),
-                        options
-                );
-            } catch (Exception e) {
-                lastException = e;
-                System.out.println("⏳ Selenium hazır değil, bekleniyor...");
-                Thread.sleep(3000);
-            }
-        }
-
-        throw new RuntimeException(
-                "❌ Selenium Grid'e bağlanılamadı!",
-                lastException
-        );
+        wait = new WebDriverWait(driver, Duration.ofSeconds(20));
     }
 
     @AfterAll
@@ -85,17 +57,12 @@ class ProductSearchE2ETest {
         }
     }
 
-    @BeforeEach
-    void loginBeforeEachTest() {
-        loginAsAdmin();
-    }
-
     // ================= TEST =================
 
     @Test
     @Order(1)
-    void productSearch_shouldFilterResultsCorrectly() {
-        String keyword = "test";
+    void productSearch_shouldFilterProducts() {
+        loginAsAdmin();
 
         driver.get(baseUrl + "/products");
 
@@ -104,20 +71,20 @@ class ProductSearchE2ETest {
         );
 
         searchInput.clear();
-        searchInput.sendKeys(keyword);
+        searchInput.sendKeys("test");
 
         WebElement tableBody = wait.until(
                 ExpectedConditions.visibilityOfElementLocated(By.id("productsBody"))
         );
 
         List<WebElement> rows = tableBody.findElements(By.tagName("tr"));
-        assertFalse(rows.isEmpty(), "❌ Arama sonrası ürün listesi boş!");
+        assertFalse(rows.isEmpty(), "❌ Arama sonrası ürün bulunamadı!");
 
         for (WebElement row : rows) {
-            String rowText = row.getText().toLowerCase();
+            String text = row.getText().toLowerCase();
             assertTrue(
-                    rowText.contains(keyword.toLowerCase()),
-                    "❌ Filtre sonucu hatalı: " + rowText
+                    text.contains("test"),
+                    "❌ Filtre sonucu 'test' içermiyor: " + text
             );
         }
     }
@@ -140,12 +107,12 @@ class ProductSearchE2ETest {
         password.sendKeys("Admin123!");
         submit.click();
 
-        Boolean tokenExists = wait.until(d -> {
+        Boolean loggedIn = wait.until(d -> {
             Object token = ((JavascriptExecutor) d)
                     .executeScript("return localStorage.getItem('token');");
             return token != null && !token.toString().isEmpty();
         });
 
-        assertTrue(tokenExists, "❌ Login başarısız – token oluşmadı!");
+        assertTrue(loggedIn, "❌ Login başarısız – token oluşmadı!");
     }
 }
