@@ -8,9 +8,8 @@ pipeline {
     }
 
     environment {
-        // Backend portunu kendi projenle aynı yap
-        BACKEND_URL = "http://host.docker.internal:9095"
-        SELENIUM_URL = "http://host.docker.internal:4444"
+        BACKEND_URL = "http://localhost:8089"
+        SELENIUM_URL = "http://localhost:4444"
     }
 
     stages {
@@ -31,7 +30,7 @@ pipeline {
         stage('Build') {
             steps {
                 echo '🔨 Proje build ediliyor (testsiz)'
-                sh 'mvn clean package -DskipTests'
+                bat 'mvn clean package -DskipTests'
             }
             post {
                 success {
@@ -50,7 +49,7 @@ pipeline {
         stage('Unit & Integration Tests') {
             steps {
                 echo '🧪 Unit + Integration testler çalıştırılıyor'
-                sh 'mvn clean test'
+                bat 'mvn clean test'
             }
             post {
                 always {
@@ -66,9 +65,9 @@ pipeline {
         stage('Start System (Docker)') {
             steps {
                 echo '🐳 Docker servisleri ayağa kaldırılıyor'
-                sh '''
-                    docker-compose down -v || true
-                    docker-compose up -d
+                bat '''
+                docker-compose down -v
+                docker-compose up -d
                 '''
             }
         }
@@ -78,29 +77,36 @@ pipeline {
         // =================================================
         stage('Wait for Services') {
             steps {
-                echo '⏳ Backend ve Selenium hazır mı kontrol ediliyor'
-                sh '''
-                    set -e
+                echo '⏳ Backend hazır mı kontrol ediliyor'
+                bat '''
+                FOR /L %%i IN (1,1,30) DO (
+                    curl -f %BACKEND_URL%/actuator/health > nul 2>&1
+                    IF %ERRORLEVEL% EQU 0 (
+                        echo Backend hazir
+                        GOTO backend_ok
+                    )
+                    echo Backend bekleniyor...
+                    timeout /t 5 > nul
+                )
+                echo Backend zaman asimina ugradi
+                EXIT /B 1
+                :backend_ok
+                '''
 
-                    echo "➡ Backend health check"
-                    for i in {1..30}; do
-                        if curl -sf ${BACKEND_URL}/actuator/health > /dev/null; then
-                            echo "✅ Backend hazır"
-                            break
-                        fi
-                        echo "⏳ Backend bekleniyor..."
-                        sleep 5
-                    done
-
-                    echo "➡ Selenium health check"
-                    for i in {1..20}; do
-                        if curl -sf ${SELENIUM_URL}/wd/hub/status > /dev/null; then
-                            echo "✅ Selenium hazır"
-                            break
-                        fi
-                        echo "⏳ Selenium bekleniyor..."
-                        sleep 3
-                    done
+                echo '⏳ Selenium hazır mı kontrol ediliyor'
+                bat '''
+                FOR /L %%i IN (1,1,20) DO (
+                    curl -f %SELENIUM_URL%/wd/hub/status > nul 2>&1
+                    IF %ERRORLEVEL% EQU 0 (
+                        echo Selenium hazir
+                        GOTO selenium_ok
+                    )
+                    echo Selenium bekleniyor...
+                    timeout /t 3 > nul
+                )
+                echo Selenium zaman asimina ugradi
+                EXIT /B 1
+                :selenium_ok
                 '''
             }
         }
@@ -111,7 +117,7 @@ pipeline {
         stage('E2E Tests (Selenium)') {
             steps {
                 echo '🌐 Selenium E2E testleri çalıştırılıyor'
-                sh 'mvn test -Pe2e'
+                bat 'mvn test -Pe2e'
             }
             post {
                 always {
@@ -125,13 +131,13 @@ pipeline {
     post {
         always {
             echo '🧹 Docker ortamı temizleniyor'
-            sh 'docker-compose down -v || true'
+            bat 'docker-compose down -v'
         }
         success {
-            echo "✅ PIPELINE BAŞARILI – Tüm aşamalar geçti"
+            echo '✅ PIPELINE BAŞARILI – Tüm aşamalar geçti'
         }
         failure {
-            echo "❌ PIPELINE BAŞARISIZ – Logları inceleyin"
+            echo '❌ PIPELINE BAŞARISIZ – Logları inceleyin'
         }
     }
 }
