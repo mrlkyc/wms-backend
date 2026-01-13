@@ -41,7 +41,6 @@ class LogoutE2ETest {
     @BeforeAll
     static void setUpDriver() throws Exception {
 
-        // 🔴 localhost YOK!
         baseUrl = System.getenv().getOrDefault(
                 "BACKEND_URL",
                 "http://wms-backend:8089"
@@ -49,7 +48,7 @@ class LogoutE2ETest {
 
         seleniumUrl = System.getenv().getOrDefault(
                 "SELENIUM_URL",
-                "http://selenium-chrome:4444"
+                "http://localhost:4444"
         );
 
         System.out.println("🌐 App URL      : " + baseUrl);
@@ -62,12 +61,13 @@ class LogoutE2ETest {
         options.addArguments("--window-size=1920,1080");
 
         driver = new RemoteWebDriver(
-                new URL(seleniumUrl + "/wd/hub"),
+                new URL(seleniumUrl), // 👈 /wd/hub EKLEME
                 options
         );
 
         wait = new WebDriverWait(driver, Duration.ofSeconds(20));
     }
+
 
     @BeforeEach
     void prepareUser() {
