@@ -13,11 +13,14 @@ pipeline {
     }
 
     environment {
-        BACKEND_URL  = "http://localhost:8089"
-        SELENIUM_URL = "http://localhost:4444"
+        // 🔴 E2E HARİCİ (host için)
+        HOST_BACKEND_URL = "http://localhost:8089"
+        HOST_SELENIUM_URL = "http://localhost:4444"
+
+        // 🟢 E2E (Docker network içi)
+        DOCKER_BACKEND_URL = "http://wms-backend:8080"
+        DOCKER_SELENIUM_URL = "http://selenium-chrome:4444"
     }
-
-
 
     stages {
 
@@ -85,15 +88,12 @@ pipeline {
             }
         }
 
-  stage('Wait for Selenium') {
-      steps {
-          echo '⏳ Selenium için 30 saniye bekleniyor'
-          sleep(time: 30, unit: 'SECONDS')
-      }
-  }
-
-
-
+        stage('Wait for Services') {
+            steps {
+                echo '⏳ Backend ve Selenium ayağa kalkması bekleniyor'
+                sleep(time: 30, unit: 'SECONDS')
+            }
+        }
 
         // ===================== E2E TESTLER =====================
 
@@ -104,8 +104,8 @@ pipeline {
                 mvn test -Pe2e ^
                 -Dtest=LoginE2ETest ^
                 -Dspring.profiles.active=test ^
-                -Dapp.url=%BACKEND_URL% ^
-                -Dselenium.remote.url=%SELENIUM_URL%
+                -Dapp.url=%DOCKER_BACKEND_URL% ^
+                -Dselenium.remote.url=%DOCKER_SELENIUM_URL%
                 '''
             }
             post {
@@ -122,8 +122,8 @@ pipeline {
                 mvn test -Pe2e ^
                 -Dtest=ProductE2ETest ^
                 -Dspring.profiles.active=test ^
-                -Dapp.url=http://wms-backend:8080 ^
-                -Dselenium.remote.url=http://selenium-chrome:4444
+                -Dapp.url=%DOCKER_BACKEND_URL% ^
+                -Dselenium.remote.url=%DOCKER_SELENIUM_URL%
                 '''
             }
             post {
@@ -132,7 +132,6 @@ pipeline {
                 }
             }
         }
-
 
         stage('E2E - Product Search') {
             when {
@@ -146,8 +145,8 @@ pipeline {
                 mvn test -Pe2e ^
                 -Dtest=ProductSearchE2ETest ^
                 -Dspring.profiles.active=test ^
-                -Dapp.url=%BACKEND_URL% ^
-                -Dselenium.remote.url=%SELENIUM_URL%
+                -Dapp.url=%DOCKER_BACKEND_URL% ^
+                -Dselenium.remote.url=%DOCKER_SELENIUM_URL%
                 '''
             }
             post {

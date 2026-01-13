@@ -30,16 +30,15 @@ class ProductE2ETest {
     @BeforeAll
     static void setUpDriver() throws Exception {
 
-        // ✅ Jenkins HOST için doğru adresler
-        baseUrl = System.getenv().getOrDefault(
-                "BACKEND_URL",
-                "http://wms-backend:8080"
-
+        // 🔐 TEK VE NET KAYNAK: JVM PROPERTY
+        baseUrl = System.getProperty(
+                "app.url",
+                "http://host.docker.internal:8089"
         );
 
-        seleniumUrl = System.getenv().getOrDefault(
-                "SELENIUM_URL",
-                "http://localhost:4444"
+        seleniumUrl = System.getProperty(
+                "selenium.remote.url",
+                "http://host.docker.internal:4444"
         );
 
         System.out.println("🌐 App URL      : " + baseUrl);
@@ -51,7 +50,6 @@ class ProductE2ETest {
         options.addArguments("--disable-dev-shm-usage");
         options.addArguments("--window-size=1920,1080");
 
-        // ✅ Selenium 4 → /wd/hub YOK
         driver = new RemoteWebDriver(
                 new URL(seleniumUrl),
                 options
@@ -95,8 +93,7 @@ class ProductE2ETest {
     void createProduct_shouldAppearInTable() {
         driver.get(baseUrl + "/products");
 
-        wait.until(ExpectedConditions.elementToBeClickable(By.id("createProductBtn")))
-                .click();
+        wait.until(ExpectedConditions.elementToBeClickable(By.id("createProductBtn"))).click();
 
         WebElement modal = wait.until(
                 ExpectedConditions.visibilityOfElementLocated(By.id("productModal"))
