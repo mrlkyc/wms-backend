@@ -85,30 +85,31 @@ pipeline {
             }
         }
 
-      stage('Wait for Selenium') {
-          steps {
-              echo '⏳ Selenium hazır mı kontrol ediliyor'
-              powershell '''
-              $maxRetry = 30
-              $retry = 0
+   stage('Wait for Selenium') {
+       steps {
+           echo '⏳ Selenium hazır mı kontrol ediliyor'
+           powershell '''
+           $maxRetry = 30
+           $retry = 0
 
-              while ($retry -lt $maxRetry) {
-                  try {
-                      Invoke-WebRequest "http://localhost:4444/wd/hub/status" -TimeoutSec 2 | Out-Null
-                      Write-Host "✅ Selenium hazır"
-                      exit 0
-                  } catch {
-                      Write-Host "⏳ Selenium bekleniyor..."
-                  }
-                  Start-Sleep -Seconds 3
-                  $retry++
-              }
+           while ($retry -lt $maxRetry) {
+               try {
+                   Invoke-WebRequest "http://localhost:4444/status" -TimeoutSec 2 | Out-Null
+                   Write-Host "✅ Selenium hazır"
+                   exit 0
+               } catch {
+                   Write-Host "⏳ Selenium bekleniyor..."
+               }
+               Start-Sleep -Seconds 3
+               $retry++
+           }
 
-              Write-Error "❌ Selenium hazır olmadı"
-              exit 1
-              '''
-          }
-      }
+           Write-Error "❌ Selenium hazır olmadı"
+           exit 1
+           '''
+       }
+   }
+
 
 
 
