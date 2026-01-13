@@ -89,12 +89,12 @@ pipeline {
           steps {
               echo '⏳ Selenium hazır mı kontrol ediliyor'
               powershell '''
-              $maxRetry = 20
+              $maxRetry = 30
               $retry = 0
 
               while ($retry -lt $maxRetry) {
                   try {
-                      Invoke-WebRequest "http://localhost:4444/status" -TimeoutSec 2 | Out-Null
+                      Invoke-WebRequest "http://localhost:4444/wd/hub/status" -TimeoutSec 2 | Out-Null
                       Write-Host "✅ Selenium hazır"
                       exit 0
                   } catch {
@@ -109,6 +109,7 @@ pipeline {
               '''
           }
       }
+
 
 
 
