@@ -75,11 +75,22 @@ pipeline {
             }
         }
 
-        stage('Wait for Services') {
+        stage('Wait for Selenium') {
             steps {
-                sleep(time: 30, unit: 'SECONDS')
+                bat '''
+                echo Selenium Grid bekleniyor...
+                for /L %%i in (1,1,10) do (
+                    docker exec selenium-chrome curl -s http://localhost:4444/status && goto ready
+                    timeout /t 5
+                )
+                echo Selenium Grid hazir degil
+                exit 1
+                :ready
+                echo Selenium Grid hazir
+                '''
             }
         }
+
 
         stage('E2E - Login') {
             steps {
