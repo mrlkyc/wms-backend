@@ -19,9 +19,6 @@ pipeline {
 
     stages {
 
-        // =================================================
-        // 1. CHECKOUT
-        // =================================================
         stage('Checkout') {
             steps {
                 echo '📥 GitHub’dan kodlar çekiliyor'
@@ -29,9 +26,6 @@ pipeline {
             }
         }
 
-        // =================================================
-        // 2. BUILD (TESTSIZ)
-        // =================================================
         stage('Build') {
             steps {
                 echo '🔨 Proje build ediliyor (testsiz)'
@@ -39,63 +33,45 @@ pipeline {
             }
             post {
                 success {
-                    echo '✅ Build başarılı'
                     archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
-                }
-                failure {
-                    error '❌ Build başarısız'
                 }
             }
         }
 
-        // =================================================
-        // 3. UNIT TESTS
-        // =================================================
         stage('Unit Tests') {
             steps {
-                echo '🧪 Unit testler çalıştırılıyor'
                 bat 'mvn test -Dtest=*ServiceTest'
             }
             post {
                 always {
                     junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
-                    echo '📊 Unit test raporları toplandı'
                 }
             }
         }
 
-        // =================================================
-        // 4. INTEGRATION TESTS
-        // =================================================
         stage('Integration Tests') {
             steps {
-                echo '🔗 Integration testler çalıştırılıyor'
                 bat 'mvn test -Dtest=*IntegrationTest'
             }
             post {
                 always {
                     junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
-                    echo '📊 Integration test raporları toplandı'
                 }
             }
         }
-stage('Force Clean Docker') {
-    steps {
-        echo '🧹 Eski Docker containerları zorla temizleniyor'
-        bat '''
-        docker rm -f wms-postgres || echo wms-postgres yok
-        docker rm -f selenium-chrome || echo selenium-chrome yok
-        docker rm -f wms-backend || echo wms-backend yok
-        '''
-    }
-}
 
-        // =================================================
-        // 5. SISTEMI DOCKER ILE AYAĞA KALDIR
-        // =================================================
+        stage('Force Clean Docker') {
+            steps {
+                bat '''
+                docker rm -f wms-postgres || echo yok
+                docker rm -f selenium-chrome || echo yok
+                docker rm -f wms-backend || echo yok
+                '''
+            }
+        }
+
         stage('Start System (Docker)') {
             steps {
-                echo '🐳 Docker servisleri ayağa kaldırılıyor'
                 bat '''
                 docker-compose down -v
                 docker-compose up -d
@@ -103,126 +79,69 @@ stage('Force Clean Docker') {
             }
         }
 
-        // =================================================
-        // 6. SERVISLER HAZIR MI?
-        // =================================================
         stage('Wait for Services') {
             steps {
-                echo '⏳ Backend hazır mı kontrol ediliyor'
-
                 powershell '''
-                $maxRetry = 30
-                $retry = 0
-
-                while ($retry -lt $maxRetry) {
+                $i=0
+                while ($i -lt 30) {
                     try {
-                        $response = Invoke-WebRequest -Uri "$env:BACKEND_URL/actuator/health" -UseBasicParsing -TimeoutSec 2
-                        if ($response.StatusCode -eq 200) {
-                            Write-Host "✅ Backend hazır"
-                            exit 0
-                        }
-                    } catch {
-                        Write-Host "⏳ Backend bekleniyor..."
-                    }
-                    Start-Sleep -Seconds 5
-                    $retry++
+                        Invoke-WebRequest "$env:BACKEND_URL/actuator/health" -TimeoutSec 2
+                        exit 0
+                    } catch {}
+                    Start-Sleep 5
+                    $i++
                 }
-
-                Write-Error "❌ Backend zaman aşımına uğradı"
-                exit 1
-                '''
-
-                echo '⏳ Selenium hazır mı kontrol ediliyor'
-
-                powershell '''
-                $maxRetry = 20
-                $retry = 0
-
-                while ($retry -lt $maxRetry) {
-                    try {
-                        $response = Invoke-WebRequest -Uri "$env:SELENIUM_URL/wd/hub/status" -UseBasicParsing -TimeoutSec 2
-                        if ($response.StatusCode -eq 200) {
-                            Write-Host "✅ Selenium hazır"
-                            exit 0
-                        }
-                    } catch {
-                        Write-Host "⏳ Selenium bekleniyor..."
-                    }
-                    Start-Sleep -Seconds 3
-                    $retry++
-                }
-
-                Write-Error "❌ Selenium zaman aşımına uğradı"
                 exit 1
                 '''
             }
         }
 
-   // E2E TESTLER – AYRI AYRI
-           // =======================
+        stage('E2E - Login') {
+            steps {
+                bat 'mvn test -Pe2e -Dtest=LoginE2ETest'
+            }
+            post {
+                always { junit 'target/surefire-reports/*.xml' }
+            }
+        }
 
-           stage('E2E - Login') {
-               steps {
-                   bat 'mvn test -Pe2e -Dtest=LoginE2ETest'
-               }
-               post {
-                   always {
-                       junit 'target/surefire-reports/*.xml'
-                   }
-               }
-           }
+        stage('E2E - Logout') {
+            steps {
+                bat 'mvn test -Pe2e -Dtest=LogoutE2ETest'
+            }
+            post {
+                always { junit 'target/surefire-reports/*.xml' }
+            }
+        }
 
-           stage('E2E - Logout') {
-               steps {
-                   bat 'mvn test -Pe2e -Dtest=LogoutE2ETest'
-               }
-               post {
-                   always {
-                       junit 'target/surefire-reports/*.xml'
-                   }
-               }
-           }
+        stage('E2E - Product CRUD') {
+            steps {
+                bat 'mvn test -Pe2e -Dtest=ProductE2ETest'
+            }
+            post {
+                always { junit 'target/surefire-reports/*.xml' }
+            }
+        }
 
-           stage('E2E - Product CRUD') {
-               steps {
-                   bat 'mvn test -Pe2e -Dtest=ProductE2ETest'
-               }
-               post {
-                   always {
-                       junit 'target/surefire-reports/*.xml'
-                   }
-               }
-           }
-
-           stage('E2E - Product Search') {
-               steps {
-                   bat 'mvn test -Pe2e -Dtest=ProductSearchE2ETest'
-               }
-               post {
-                   always {
-                       junit 'target/surefire-reports/*.xml'
-                   }
-               }
-           }
-       }
-
-       post {
-           always {
-               bat 'docker-compose down -v'
-           }
-       }
-   }
+        stage('E2E - Product Search') {
+            steps {
+                bat 'mvn test -Pe2e -Dtest=ProductSearchE2ETest'
+            }
+            post {
+                always { junit 'target/surefire-reports/*.xml' }
+            }
+        }
+    }
 
     post {
         always {
-            echo '🧹 Docker ortamı temizleniyor'
             bat 'docker-compose down -v'
         }
         success {
-            echo '✅ PIPELINE BAŞARILI – Tüm aşamalar geçti'
+            echo '✅ PIPELINE BAŞARILI'
         }
         failure {
-            echo '❌ PIPELINE BAŞARISIZ – Logları inceleyin'
+            echo '❌ PIPELINE BAŞARISIZ'
         }
     }
 }
