@@ -114,6 +114,15 @@ pipeline {
                 }
             }
         }
+stage('Reset Selenium') {
+    steps {
+        echo '♻ Selenium resetleniyor'
+        bat '''
+        docker restart selenium-chrome
+        '''
+        sleep(time: 15, unit: 'SECONDS')
+    }
+}
 
         stage('E2E - Product CRUD') {
             steps {
@@ -132,6 +141,15 @@ pipeline {
                 }
             }
         }
+stage('Reset Selenium') {
+    steps {
+        echo '♻ Selenium resetleniyor'
+        bat '''
+        docker restart selenium-chrome
+        '''
+        sleep(time: 15, unit: 'SECONDS')
+    }
+}
 
         stage('E2E - Product Search') {
             when {
