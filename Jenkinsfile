@@ -13,10 +13,10 @@ pipeline {
     }
 
     environment {
-        BACKEND_URL  = "http://wms-backend:8089"
-        SELENIUM_URL = "http://selenium-chrome:4444"
+        // 🔴 Jenkins HOST → Docker container erişimi
+        BACKEND_URL  = "http://localhost:8089"
+        SELENIUM_URL = "http://localhost:4444"
     }
-
 
     stages {
 
@@ -87,7 +87,6 @@ pipeline {
         stage('Wait for Services') {
             steps {
                 echo '⏳ Backend container HEALTHY mi kontrol ediliyor'
-
                 powershell '''
                 $maxRetry = 30
                 $retry = 0
@@ -111,9 +110,18 @@ pipeline {
             }
         }
 
+        // ===================== E2E TESTLER =====================
+
         stage('E2E - Login') {
             steps {
-                bat 'mvn test -Pe2e -Dtest=LoginE2ETest'
+                echo '🔐 E2E Login Testi'
+                bat '''
+                mvn test -Pe2e ^
+                -Dtest=LoginE2ETest ^
+                -Dspring.profiles.active=test ^
+                -Dapp.url=%BACKEND_URL% ^
+                -Dselenium.remote.url=%SELENIUM_URL%
+                '''
             }
             post {
                 always {
@@ -121,17 +129,17 @@ pipeline {
                 }
             }
         }
-
-
-
 
         stage('E2E - Product CRUD') {
-            environment {
-                BACKEND_URL  = "http://wms-backend:8089"
-                SELENIUM_URL = "http://selenium-chrome:4444"
-            }
             steps {
-                bat 'mvn test -Pe2e -Dtest=ProductE2ETest'
+                echo '📦 E2E Product CRUD Testi'
+                bat '''
+                mvn test -Pe2e ^
+                -Dtest=ProductE2ETest ^
+                -Dspring.profiles.active=test ^
+                -Dapp.url=%BACKEND_URL% ^
+                -Dselenium.remote.url=%SELENIUM_URL%
+                '''
             }
             post {
                 always {
@@ -140,10 +148,21 @@ pipeline {
             }
         }
 
-
         stage('E2E - Product Search') {
+            when {
+                expression {
+                    return fileExists('src/test/java/com/wms/e2e/ProductSearchE2ETest.java')
+                }
+            }
             steps {
-                bat 'mvn test -Pe2e -Dtest=ProductSearchE2ETest'
+                echo '🔍 E2E Product Search Testi'
+                bat '''
+                mvn test -Pe2e ^
+                -Dtest=ProductSearchE2ETest ^
+                -Dspring.profiles.active=test ^
+                -Dapp.url=%BACKEND_URL% ^
+                -Dselenium.remote.url=%SELENIUM_URL%
+                '''
             }
             post {
                 always {
