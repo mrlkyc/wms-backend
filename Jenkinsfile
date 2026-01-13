@@ -2,26 +2,17 @@ pipeline {
     agent any
 
     tools {
-        maven 'Maven-3.9.6'
-        jdk  'jdk-21'
-    }
-
-    options {
-        timestamps()
-        disableConcurrentBuilds()
-        buildDiscarder(logRotator(numToKeepStr: '10'))
+        maven 'Maven'
+        jdk 'JDK17'
     }
 
     environment {
-        BACKEND_URL = "http://localhost:8089"
-        SELENIUM_URL = "http://localhost:4444"
+        DOCKER_COMPOSE_FILE = 'docker-compose.yml'
+        BACKEND_URL = 'http://localhost:8089/actuator/health'
     }
 
     stages {
 
-        // =================================================
-        // 1. KODLARI ÇEK
-        // =================================================
         stage('Checkout') {
             steps {
                 echo '📥 GitHub’dan kodlar çekiliyor'
@@ -29,9 +20,6 @@ pipeline {
             }
         }
 
-        // =================================================
-        // 2. BUILD (TESTSIZ)
-        // =================================================
         stage('Build') {
             steps {
                 echo '🔨 Proje build ediliyor (testsiz)'
@@ -42,15 +30,9 @@ pipeline {
                     echo '✅ Build başarılı'
                     archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
                 }
-                failure {
-                    error '❌ Build başarısız'
-                }
             }
         }
 
-        // =================================================
-        // 3. UNIT + INTEGRATION TESTLER
-        // =================================================
         stage('Unit & Integration Tests') {
             steps {
                 echo '🧪 Unit + Integration testler çalıştırılıyor'
@@ -58,15 +40,12 @@ pipeline {
             }
             post {
                 always {
-                    junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
+                    junit 'target/surefire-reports/*.xml'
                     echo '📊 Test raporları toplandı'
                 }
             }
         }
 
-        // =================================================
-        // 4. SISTEMI DOCKER ILE AYAĞA KALDIR
-        // =================================================
         stage('Start System (Docker)') {
             steps {
                 echo '🐳 Docker servisleri ayağa kaldırılıyor'
@@ -77,58 +56,35 @@ pipeline {
             }
         }
 
-        // =================================================
-        // 5. SERVISLER HAZIR MI?
-        // =================================================
         stage('Wait for Services') {
             steps {
                 echo '⏳ Backend hazır mı kontrol ediliyor'
                 bat '''
-                FOR /L %%i IN (1,1,30) DO (
-                    curl -f %BACKEND_URL%/actuator/health > nul 2>&1
-                    IF %ERRORLEVEL% EQU 0 (
+                set READY=0
+                for /L %%i in (1,1,30) do (
+                    curl -s http://localhost:8089/actuator/health >nul
+                    if %ERRORLEVEL% EQU 0 (
                         echo Backend hazir
-                        GOTO backend_ok
+                        set READY=1
+                        goto done
                     )
                     echo Backend bekleniyor...
-                    timeout /t 5 > nul
+                    timeout /t 5 >nul
                 )
-                echo Backend zaman asimina ugradi
-                EXIT /B 1
-                :backend_ok
-                '''
-
-                echo '⏳ Selenium hazır mı kontrol ediliyor'
-                bat '''
-                FOR /L %%i IN (1,1,20) DO (
-                    curl -f %SELENIUM_URL%/wd/hub/status > nul 2>&1
-                    IF %ERRORLEVEL% EQU 0 (
-                        echo Selenium hazir
-                        GOTO selenium_ok
-                    )
-                    echo Selenium bekleniyor...
-                    timeout /t 3 > nul
+                :done
+                if %READY% EQU 0 (
+                    echo Backend zamaninda ayaga kalkmadi
+                    exit /b 1
                 )
-                echo Selenium zaman asimina ugradi
-                EXIT /B 1
-                :selenium_ok
                 '''
             }
         }
 
-        // =================================================
-        // 6. E2E (SELENIUM) TESTLER
-        // =================================================
+
         stage('E2E Tests (Selenium)') {
             steps {
-                echo '🌐 Selenium E2E testleri çalıştırılıyor'
-                bat 'mvn test -Pe2e'
-            }
-            post {
-                always {
-                    junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
-                    echo '📊 E2E test raporları toplandı'
-                }
+                echo '🧪 Selenium E2E testleri çalıştırılıyor'
+                bat 'mvn -Dtest=*UiTest test'
             }
         }
     }
@@ -138,9 +94,11 @@ pipeline {
             echo '🧹 Docker ortamı temizleniyor'
             bat 'docker-compose down -v'
         }
+
         success {
-            echo '✅ PIPELINE BAŞARILI – Tüm aşamalar geçti'
+            echo '🎉 PIPELINE BAŞARILI'
         }
+
         failure {
             echo '❌ PIPELINE BAŞARISIZ – Logları inceleyin'
         }
