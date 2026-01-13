@@ -29,8 +29,17 @@ class ProductE2ETest {
 
     @BeforeAll
     static void setUpDriver() throws Exception {
-        baseUrl = System.getProperty("app.url", "http://localhost:8089");
-        seleniumUrl = System.getProperty("selenium.remote.url", "http://localhost:4444");
+
+        // 🔴 localhost YOK – ENV varsa onu al
+        baseUrl = System.getenv().getOrDefault(
+                "BACKEND_URL",
+                "http://wms-backend:8089"
+        );
+
+        seleniumUrl = System.getenv().getOrDefault(
+                "SELENIUM_URL",
+                "http://selenium-chrome:4444"
+        );
 
         System.out.println("🌐 App URL      : " + baseUrl);
         System.out.println("🔗 Selenium URL : " + seleniumUrl);
@@ -41,12 +50,13 @@ class ProductE2ETest {
         options.addArguments("--disable-dev-shm-usage");
         options.addArguments("--window-size=1920,1080");
 
+        // ✅ Selenium 4 → /wd/hub KULLANMA
         driver = new RemoteWebDriver(
-                new URL(seleniumUrl + "/wd/hub"),
+                new URL(seleniumUrl),
                 options
         );
 
-        wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+        wait = new WebDriverWait(driver, Duration.ofSeconds(25));
     }
 
     @AfterAll

@@ -126,6 +126,10 @@ pipeline {
 
 
         stage('E2E - Product CRUD') {
+            environment {
+                BACKEND_URL  = "http://wms-backend:8089"
+                SELENIUM_URL = "http://selenium-chrome:4444"
+            }
             steps {
                 bat 'mvn test -Pe2e -Dtest=ProductE2ETest'
             }
@@ -135,6 +139,7 @@ pipeline {
                 }
             }
         }
+
 
         stage('E2E - Product Search') {
             steps {
