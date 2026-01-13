@@ -85,30 +85,13 @@ pipeline {
             }
         }
 
-   stage('Wait for Selenium') {
-       steps {
-           echo '⏳ Selenium hazır mı kontrol ediliyor'
-           powershell '''
-           $maxRetry = 30
-           $retry = 0
+  stage('Wait for Selenium') {
+      steps {
+          echo '⏳ Selenium için 30 saniye bekleniyor'
+          sleep(time: 30, unit: 'SECONDS')
+      }
+  }
 
-           while ($retry -lt $maxRetry) {
-               try {
-                   Invoke-WebRequest "http://localhost:4444/status" -TimeoutSec 3 | Out-Null
-                   Write-Host "✅ Selenium hazır"
-                   exit 0
-               } catch {
-                   Write-Host "⏳ Selenium bekleniyor..."
-               }
-               Start-Sleep -Seconds 3
-               $retry++
-           }
-
-           Write-Error "❌ Selenium hazır olmadı"
-           exit 1
-           '''
-       }
-   }
 
 
 
