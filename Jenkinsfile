@@ -13,9 +13,10 @@ pipeline {
     }
 
     environment {
-        BACKEND_URL  = "http://localhost:8089"
-        SELENIUM_URL = "http://localhost:4444"
+        BACKEND_URL  = "http://wms-backend:8089"
+        SELENIUM_URL = "http://selenium-chrome:4444"
     }
+
 
     stages {
 
