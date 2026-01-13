@@ -124,8 +124,33 @@ stage('Reset Selenium') {
     }
 }
 
+        stage('E2E - Login') {
+            steps {
+                echo '🔐 E2E Login Testi'
+                bat '''
+                mvn test -Pe2e ^
+                -Dtest=LoginE2ETest ^
+                -Dspring.profiles.active=test ^
+                -Dapp.url=%DOCKER_BACKEND_URL% ^
+                -Dselenium.remote.url=%DOCKER_SELENIUM_URL%
+                '''
+            }
+            post {
+                always {
+                    junit 'target/surefire-reports/*.xml'
+                }
+            }
+        }
 
+        stage('Reset Selenium') {
+            steps {
+                echo '♻ Selenium resetleniyor'
+                bat 'docker restart selenium-chrome'
+                sleep(time: 15, unit: 'SECONDS')
+            }
+        }
 
+        // 🔁 YERİ DEĞİŞTİ → SEARCH ÖNCE
         stage('E2E - Product Search') {
             when {
                 expression {
@@ -148,8 +173,8 @@ stage('Reset Selenium') {
                 }
             }
         }
-    }
 
+        // 🔁 YERİ DEĞİŞTİ → CRUD SONRA
         stage('E2E - Product CRUD') {
             steps {
                 echo '📦 E2E Product CRUD Testi'
@@ -167,6 +192,7 @@ stage('Reset Selenium') {
                 }
             }
         }
+
     post {
         always {
             echo '🧹 Docker ortamı kapatılıyor'
