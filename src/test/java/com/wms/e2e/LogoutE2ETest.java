@@ -40,8 +40,17 @@ class LogoutE2ETest {
 
     @BeforeAll
     static void setUpDriver() throws Exception {
-        baseUrl = System.getProperty("app.url", "http://localhost:8089");
-        seleniumUrl = System.getProperty("selenium.remote.url", "http://localhost:4444");
+
+        // 🔴 localhost YOK!
+        baseUrl = System.getenv().getOrDefault(
+                "BACKEND_URL",
+                "http://wms-backend:8089"
+        );
+
+        seleniumUrl = System.getenv().getOrDefault(
+                "SELENIUM_URL",
+                "http://selenium-chrome:4444"
+        );
 
         System.out.println("🌐 App URL      : " + baseUrl);
         System.out.println("🔗 Selenium URL : " + seleniumUrl);
@@ -111,6 +120,7 @@ class LogoutE2ETest {
     // ================= HELPERS =================
 
     private void loginAsAdmin() {
+
         driver.get(baseUrl + "/login");
 
         WebElement email = wait.until(
