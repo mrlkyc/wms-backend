@@ -79,6 +79,16 @@ pipeline {
                 }
             }
         }
+stage('Force Clean Docker') {
+    steps {
+        echo '🧹 Eski Docker containerları zorla temizleniyor'
+        bat '''
+        docker rm -f wms-postgres || echo wms-postgres yok
+        docker rm -f selenium-chrome || echo selenium-chrome yok
+        docker rm -f wms-backend || echo wms-backend yok
+        '''
+    }
+}
 
         // =================================================
         // 5. SISTEMI DOCKER ILE AYAĞA KALDIR
