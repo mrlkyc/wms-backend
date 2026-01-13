@@ -122,16 +122,19 @@ pipeline {
             }
         }
 
-        stage('E2E - Logout') {
-            steps {
-                bat 'mvn test -Pe2e -Dtest=LogoutE2ETest'
-            }
-            post {
-                always {
-                    junit 'target/surefire-reports/*.xml'
-                }
-            }
-        }
+       stage('E2E - Logout') {
+           environment {
+               BACKEND_URL  = "http://localhost:8089"
+               SELENIUM_URL = "http://localhost:4444"
+           }
+           steps {
+               bat 'mvn test -Pe2e -Dtest=LogoutE2ETest'
+           }
+           post {
+               always { junit 'target/surefire-reports/*.xml' }
+           }
+       }
+
 
         stage('E2E - Product CRUD') {
             steps {

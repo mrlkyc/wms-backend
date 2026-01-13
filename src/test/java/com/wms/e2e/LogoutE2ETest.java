@@ -43,7 +43,7 @@ class LogoutE2ETest {
 
         baseUrl = System.getenv().getOrDefault(
                 "BACKEND_URL",
-                "http://wms-backend:8089"
+                "http://localhost:8089"
         );
 
         seleniumUrl = System.getenv().getOrDefault(
@@ -61,12 +61,13 @@ class LogoutE2ETest {
         options.addArguments("--window-size=1920,1080");
 
         driver = new RemoteWebDriver(
-                new URL(seleniumUrl), // 👈 /wd/hub EKLEME
+                new URL(seleniumUrl),
                 options
         );
 
         wait = new WebDriverWait(driver, Duration.ofSeconds(20));
     }
+
 
 
     @BeforeEach
