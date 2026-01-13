@@ -13,9 +13,10 @@ pipeline {
     }
 
     environment {
-        BACKEND_URL  = "http://wms-backend:8089"
-        SELENIUM_URL = "http://selenium-chrome:4444"
+        BACKEND_URL  = "http://localhost:8089"
+        SELENIUM_URL = "http://localhost:4444"
     }
+
 
 
     stages {
@@ -86,27 +87,26 @@ pipeline {
 
         stage('Wait for Services') {
             steps {
-                echo '⏳ Backend container HEALTHY mi kontrol ediliyor'
-                powershell '''
-                $maxRetry = 30
+                echo '⏳ Selenium hazır mı kontrol ediliyor'
+
+                $maxRetry = 20
                 $retry = 0
 
                 while ($retry -lt $maxRetry) {
-                    $status = docker inspect -f "{{.State.Health.Status}}" wms-backend 2>$null
-
-                    if ($status -eq "healthy") {
-                        Write-Host "✅ Backend HEALTHY"
+                    try {
+                        Invoke-WebRequest "http://localhost:4444/status" -TimeoutSec 2 | Out-Null
+                        Write-Host "✅ Selenium hazır"
                         exit 0
+                    } catch {
+                        Write-Host "⏳ Selenium bekleniyor..."
                     }
-
-                    Write-Host "⏳ Backend bekleniyor... ($status)"
-                    Start-Sleep -Seconds 5
+                    Start-Sleep -Seconds 3
                     $retry++
                 }
 
-                Write-Error "❌ Backend HEALTHY olmadı"
+                Write-Error "❌ Selenium hazır olmadı"
                 exit 1
-                '''
+
             }
         }
 
