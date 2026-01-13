@@ -124,23 +124,6 @@ stage('Reset Selenium') {
     }
 }
 
-        stage('E2E - Product CRUD') {
-            steps {
-                echo '📦 E2E Product CRUD Testi'
-                bat '''
-                mvn test -Pe2e ^
-                -Dtest=ProductE2ETest ^
-                -Dspring.profiles.active=test ^
-                -Dapp.url=%DOCKER_BACKEND_URL% ^
-                -Dselenium.remote.url=%DOCKER_SELENIUM_URL%
-                '''
-            }
-            post {
-                always {
-                    junit 'target/surefire-reports/*.xml'
-                }
-            }
-        }
 
 
         stage('E2E - Product Search') {
@@ -167,6 +150,23 @@ stage('Reset Selenium') {
         }
     }
 
+        stage('E2E - Product CRUD') {
+            steps {
+                echo '📦 E2E Product CRUD Testi'
+                bat '''
+                mvn test -Pe2e ^
+                -Dtest=ProductE2ETest ^
+                -Dspring.profiles.active=test ^
+                -Dapp.url=%DOCKER_BACKEND_URL% ^
+                -Dselenium.remote.url=%DOCKER_SELENIUM_URL%
+                '''
+            }
+            post {
+                always {
+                    junit 'target/surefire-reports/*.xml'
+                }
+            }
+        }
     post {
         always {
             echo '🧹 Docker ortamı kapatılıyor'
